@@ -1,0 +1,177 @@
+<!DOCTYPE html><html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard Emix (Privat)</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0e0e0e;
+      color: #fff;
+      margin: 0;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+    h2 {
+      text-align: center;
+      animation: fadeIn 1s ease;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      background: #1e1e1e;
+      margin-top: 20px;
+      animation: fadeIn 1s ease;
+    }
+    th, td {
+      padding: 10px;
+      text-align: center;
+      border: 1px solid #444;
+    }
+    th {
+      background-color: #333;
+    }
+    td a {
+      color: skyblue;
+    }
+    .badge {
+      padding: 5px 10px;
+      border-radius: 8px;
+      color: white;
+    }
+    .aktif {
+      background: limegreen;
+    }
+    .expired {
+      background: crimson;
+    }
+    #popup, #popupWaifu {
+      display: none;
+      position: fixed;
+      top: 30%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #1a1a1a;
+      border: 1px solid red;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px red;
+      text-align: center;
+      z-index: 999;
+    }
+    #popupWaifu img {
+      width: 100px;
+      border-radius: 12px;
+    }
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      background-color: crimson;
+      color: white;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    form {
+      margin-top: 30px;
+      background: #1e1e1e;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 10px #222;
+      animation: fadeIn 1s ease;
+    }
+    input {
+      padding: 10px;
+      margin: 5px;
+      border: none;
+      border-radius: 8px;
+      width: calc(100% - 22px);
+      background: #333;
+      color: white;
+    }
+    @keyframes fadeIn {
+      from {opacity: 0; transform: scale(0.9);}
+      to {opacity: 1; transform: scale(1);}
+    }
+  </style>
+</head>
+<body><div id="popup">
+  <p>Akses ditolak.<br>Aktivitas ini telah dicatat oleh sistem Emix.</p>
+  <button onclick="closePopup()">Tutup</button>
+</div><div id="popupWaifu">
+  <img src="https://i.ibb.co/wh1jtrc/waifu-smile.png" alt="waifu">
+  <p>Selamat datang kembali, Sensei Emix!<br>Kami siap membantu harimu.</p>
+  <button onclick="closeWaifu()">Lanjutkan</button>
+</div><div id="dashboard"></div><script>
+  const token = '7701966240:AAHFGHRVkXSnfOBt-FC5Ls991_t7nwSMbLA';
+  const chatId = '8097806353';
+  const pinBenar = "701280";
+
+  const pin = prompt("Masukkan PIN Akses Dashboard:");
+
+  if (pin !== pinBenar) {
+    document.getElementById("popup").style.display = "block";
+    const msg = `\u{1F6A8} *Percobaan Akses Gagal ke Dashboard Emix*\n\nWaktu: ${new Date().toLocaleString()}\nStatus: PIN Salah\nDevice: Public`;
+    fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ chat_id: chatId, text: msg, parse_mode: 'Markdown' })
+    });
+  } else {
+    document.getElementById("popupWaifu").style.display = "block";
+    const clients = [
+      { nama: "Andi", link: "https://emixstore.github.io/andi-topup", mulai: "2024-04-12", habis: "2024-05-12" },
+      { nama: "Budi", link: "https://emixstore.github.io/budi-store", mulai: "2024-04-01", habis: "2024-04-30" }
+    ];
+
+    function hitungSisaHari(tanggalHabis) {
+      const today = new Date();
+      const endDate = new Date(tanggalHabis);
+      const selisih = Math.ceil((endDate - today) / (1000 * 60 * 60 * 24));
+      return selisih;
+    }
+
+    function buatTabel() {
+      let html = `<h2>Dashboard Klien Emix</h2>`;
+      html += `<table><thead><tr><th>Nama Klien</th><th>Link Website</th><th>Mulai</th><th>Habis</th><th>Sisa Hari</th><th>Status</th></tr></thead><tbody>`;
+      clients.forEach(c => {
+        const sisa = hitungSisaHari(c.habis);
+        const status = sisa >= 0 ? `<span class='badge aktif'>Aktif</span>` : `<span class='badge expired'>Expired</span>`;
+        html += `<tr><td>${c.nama}</td><td><a href='${c.link}' target='_blank'>Kunjungi</a></td><td>${c.mulai}</td><td>${c.habis}</td><td>${sisa >= 0 ? sisa + ' hari' : 'Expired'}</td><td>${status}</td></tr>`;
+      });
+      html += `</tbody></table>`;
+
+      html += `<form onsubmit="tambahKlien(event)">
+        <h3>Tambah Klien Baru</h3>
+        <input type="text" id="nama" placeholder="Nama Klien" required>
+        <input type="text" id="link" placeholder="Link Website (https://...)" required>
+        <input type="date" id="mulai" required>
+        <input type="date" id="habis" required>
+        <button type="submit">Tambah</button>
+      </form>`;
+
+      document.getElementById("dashboard").innerHTML = html;
+    }
+
+    function tambahKlien(e) {
+      e.preventDefault();
+      const nama = document.getElementById("nama").value;
+      const link = document.getElementById("link").value;
+      const mulai = document.getElementById("mulai").value;
+      const habis = document.getElementById("habis").value;
+      clients.push({ nama, link, mulai, habis });
+      buatTabel();
+    }
+
+    buatTabel();
+  }
+
+  function closePopup() {
+    document.getElementById("popup").style.display = "none";
+  }
+
+  function closeWaifu() {
+    document.getElementById("popupWaifu").style.display = "none";
+  }
+</script></body>
+  </html>
